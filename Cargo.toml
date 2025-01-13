@@ -1,0 +1,22 @@
+[package]
+name = "axum_gatekeeper"
+version = "0.1.0"
+readme = "README.md"
+repository = "https://github.com/tstaetter/axum-gatekeeper"
+license = "MIT"
+authors = ["Thomas Stätter <thomas.staetter@gmail.com"]
+keywords = ["axum", "authorization", "bearer-token", "api", "security"]
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.8.1", features = ["http2", "macros"] }
+http-serde = "2.1.1"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.134"
+tracing = "0.1.41"
+tokio = { version = "1.42.0", features = ["rt-multi-thread", "macros"] }
+uuid = { version = "1.11.0", features = ["v4", "serde"] }
+
+[dev-dependencies]
+anyhow = "1.0.95"
+reqwest = { version = "0.12.12", features = ["http2", "json"] }
