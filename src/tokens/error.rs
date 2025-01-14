@@ -1,33 +1,37 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use serde::Deserialize;
 use std::fmt::{Display, Formatter};
 
-#[derive(thiserror::Error, Debug, Deserialize)]
+#[derive(thiserror::Error, Debug)]
 pub enum TokenError {
-    #[error("Error signing token: {0}")]
-    Encoding(TokenErrorResponse),
-    #[error("Error decoding token headers: {0}")]
+    #[error("Unknown error handling JWT: {0}")]
+    Unknown(#[from] jsonwebtoken::errors::Error),
+    #[error("Error signing tokens: {0}")]
+    Encode(TokenErrorResponse),
+    #[error("Error decoding tokens headers: {0}")]
     DecodeHeader(TokenErrorResponse),
-    #[error("Error decoding token: {0}")]
+    #[error("Error decoding tokens: {0}")]
     Decode(TokenErrorResponse),
-    #[error("No token string available")]
+    #[error("No tokens string available")]
     MissingTokenString,
-    #[error("Error using refresh token: {0}")]
+    #[error("Error using refresh tokens: {0}")]
     RefreshToken(TokenErrorResponse),
 }
 
 impl IntoResponse for TokenError {
     fn into_response(self) -> Response {
         match self {
-            TokenError::Encoding(e) => (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
+            TokenError::Unknown(e) => {
+                (StatusCode::UNAUTHORIZED, "Unknown error handling JWT").into_response()
+            }
+            TokenError::Encode(e) => (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
             TokenError::DecodeHeader(e) => {
                 (StatusCode::UNAUTHORIZED, e.to_string()).into_response()
             }
             TokenError::Decode(e) => (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
             TokenError::MissingTokenString => (
                 StatusCode::UNAUTHORIZED,
-                String::from("Missing token string"),
+                String::from("Missing tokens string"),
             )
                 .into_response(),
             TokenError::RefreshToken(e) => {

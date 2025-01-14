@@ -1,19 +1,29 @@
-mod token;
-
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
-pub use token::TokenError;
+pub use crate::tokens::TokenError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum GateKeeperError {
-    #[error("Token handling token: {0}")]
+    #[error("Cannot parse int value: {0}")]
+    ParseInt(#[from] std::num::ParseIntError),
+    #[error("Error reading env var: {0}")]
+    EnvVar(#[from] std::env::VarError),
+    #[error("Token handling error: {0}")]
     Token(#[from] TokenError),
 }
 
 impl IntoResponse for GateKeeperError {
     fn into_response(self) -> Response {
         match self {
+            GateKeeperError::ParseInt(e) => {
+                tracing::error!("Int parsing error: {:?}", e);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Error parsing value").into_response()
+            }
+            GateKeeperError::EnvVar(e) => {
+                tracing::error!("Env var error: {:?}", e);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Error reading env var").into_response()
+            }
             GateKeeperError::Token(e) => {
                 tracing::error!("Token error: {:?}", e);
                 (StatusCode::UNAUTHORIZED, e).into_response()
@@ -25,7 +35,7 @@ impl IntoResponse for GateKeeperError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::token::TokenErrorResponse;
+    use crate::tokens::{TokenError, TokenErrorResponse};
     use http_body_util::BodyExt;
 
     #[tokio::test]

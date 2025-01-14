@@ -1,3 +1,3 @@
-mod authentication;
+mod authenticate;
 
-pub use authentication::*;
+pub use authenticate::*;
