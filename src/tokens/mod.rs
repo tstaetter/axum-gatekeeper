@@ -67,7 +67,7 @@ pub trait Token {
         let encoded = jsonwebtoken::encode(&header, claims, &key).map_err(|e| {
             tracing::error!("Couldn't encode token claims: {}", e);
 
-            let response = TokenErrorResponse::build()
+            let response = crate::ErrorResponse::build()
                 .message("Couldn't encode token claims".to_string())
                 .build();
 
@@ -91,7 +91,7 @@ pub trait Token {
         .map_err(|e| {
             tracing::error!("Couldn't decode token claims: {}", e);
 
-            let response = TokenErrorResponse::build()
+            let response = crate::ErrorResponse::build()
                 .message("Couldn't decode token claims".to_string())
                 .build();
 

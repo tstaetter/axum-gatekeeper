@@ -5,6 +5,15 @@ pub use crate::tokens::TokenError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum GateKeeperError {
+    #[cfg(feature = "authentication")]
+    #[error("Authentication error: {0}")]
+    Authentication(#[from] crate::authentication::AuthenticationError),
+    #[cfg(feature = "authorization")]
+    #[error("Authorization error: {0}")]
+    Authorization(#[from] crate::authorization::AuthorizationError),
+    #[cfg(feature = "verification")]
+    #[error("Verification error: {0}")]
+    Verification(#[from] crate::verification::VerificationError),
     #[error("Cannot parse int value: {0}")]
     ParseInt(#[from] std::num::ParseIntError),
     #[error("Error reading env var: {0}")]
@@ -16,6 +25,21 @@ pub enum GateKeeperError {
 impl IntoResponse for GateKeeperError {
     fn into_response(self) -> Response {
         match self {
+            #[cfg(feature = "authentication")]
+            GateKeeperError::Authentication(e) => {
+                tracing::error!("{e:?}");
+                (StatusCode::UNAUTHORIZED, "Error authenticating user").into_response()
+            }
+            #[cfg(feature = "authorization")]
+            GateKeeperError::Authorization(e) => {
+                tracing::error!("{e:?}");
+                (StatusCode::FORBIDDEN, "Error authorizing user").into_response()
+            }
+            #[cfg(feature = "verification")]
+            GateKeeperError::Verification(e) => {
+                tracing::error!("{e:?}");
+                (StatusCode::FORBIDDEN, "Error verifying token").into_response()
+            }
             GateKeeperError::ParseInt(e) => {
                 tracing::error!("Int parsing error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Error parsing value").into_response()
@@ -35,12 +59,13 @@ impl IntoResponse for GateKeeperError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tokens::{TokenError, TokenErrorResponse};
+    use crate::tokens::TokenError;
+    use crate::ErrorResponse;
     use http_body_util::BodyExt;
 
     #[tokio::test]
     async fn test_token_error() -> anyhow::Result<()> {
-        let error = TokenErrorResponse::build()
+        let error = ErrorResponse::build()
             .status_code(StatusCode::IM_A_TEAPOT)
             .message("foo => bar".to_string())
             .build();

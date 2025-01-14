@@ -1,5 +1,5 @@
 use crate::error::{GateKeeperError, TokenError};
-use crate::tokens::TokenErrorResponse;
+use crate::ErrorResponse;
 use crate::GateKeeperResult;
 
 pub struct TokenService;
@@ -11,7 +11,7 @@ impl TokenService {
         jsonwebtoken::decode_header(&encoded).map_err(|e| {
             tracing::error!("Error decoding token header: {}", e);
 
-            let response = TokenErrorResponse::build()
+            let response = ErrorResponse::build()
                 .message("Error decoding token headers".to_string())
                 .build();
 
