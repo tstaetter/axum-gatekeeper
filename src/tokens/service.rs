@@ -1,9 +1,6 @@
-use crate::db::AppDatabase;
-use crate::error::{AppError, GateKeeperError, TokenError};
-use crate::model::GateKeeperModel;
-use crate::models::User;
+use crate::error::{GateKeeperError, TokenError};
 use crate::tokens::TokenErrorResponse;
-use crate::{AppResult, GateKeeperResult};
+use crate::GateKeeperResult;
 
 pub struct TokenService;
 
@@ -21,41 +18,33 @@ impl TokenService {
             GateKeeperError::Token(TokenError::DecodeHeader(response))
         })
     }
-
-    pub async fn try_get_user_for_encoded(
-        encoded: String,
-        db: &AppDatabase,
-    ) -> GateKeeperResult<impl GateKeeperModel> {
-        let kid = Self::get_token_headers_from_encoded(encoded)?
-            .kid
-            .unwrap_or_default();
-        let kid = uuid::Uuid::parse_str(kid.as_str())?;
-        let user = db.find_one::<User, uuid::Uuid>("ext_id", kid).await?;
-
-        Ok(user)
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::db::AppDatabase;
-    use crate::models::user::tests::valid_test_user;
-    use crate::tokens::{AuthenticationToken, Claims, RefreshToken, Token, TokenService};
+    use super::TokenService;
+    use crate::tokens::{Claims, Token};
 
-    #[tokio::test]
-    async fn test_try_get_user_for_encoded() -> anyhow::Result<()> {
-        dotenv::dotenv().ok();
+    struct TestToken {
+        encoded: String,
+        claims: Claims,
+    }
 
-        let db = AppDatabase::try_new().await?;
-        let user = valid_test_user()?;
-        let user = db.insert_one(&user).await?;
-        let token = AuthenticationToken::try_new_for_user(&user)?;
-        let svc_user =
-            TokenService::try_get_user_for_encoded(token.get_encoded().to_string(), &db).await?;
+    impl Token for TestToken {
+        fn new(encoded: String, claims: Claims) -> Self
+        where
+            Self: Sized,
+        {
+            Self { encoded, claims }
+        }
 
-        assert_eq!(user.id.unwrap(), svc_user.id.unwrap());
+        fn get_claims(&self) -> &Claims {
+            &self.claims
+        }
 
-        Ok(())
+        fn get_encoded(&self) -> &String {
+            &self.encoded
+        }
     }
 
     #[tokio::test]
@@ -68,7 +57,7 @@ mod tests {
             sub: uuid.to_string(),
         };
         let secret = "test";
-        let encoded = RefreshToken::encode(&claims, secret.to_string())?;
+        let encoded = TestToken::encode(&claims, secret.to_string())?;
         let headers = TokenService::get_token_headers_from_encoded(encoded)?;
 
         assert_eq!(uuid.to_string(), headers.kid.unwrap());

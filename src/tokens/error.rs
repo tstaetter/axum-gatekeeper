@@ -6,6 +6,12 @@ use std::fmt::{Display, Formatter};
 pub enum TokenError {
     #[error("Unknown error handling JWT: {0}")]
     Unknown(#[from] jsonwebtoken::errors::Error),
+    #[error("Error decoding base64 value: {0}")]
+    Base64Decode(#[from] base64::DecodeError),
+    #[error("Error reading UTF-8 value: {0}")]
+    Utf8(#[from] std::string::FromUtf8Error),
+    #[error("Couldn't read cookie expiration time: {0:?}")]
+    ReadingExpiration(#[from] cookie::time::error::ComponentRange),
     #[error("Error signing tokens: {0}")]
     Encode(TokenErrorResponse),
     #[error("Error decoding tokens headers: {0}")]
@@ -21,7 +27,33 @@ pub enum TokenError {
 impl IntoResponse for TokenError {
     fn into_response(self) -> Response {
         match self {
+            TokenError::ReadingExpiration(e) => {
+                tracing::error!("Error reading expiration time: {:?}", e);
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Error creating expiration time for cookie",
+                )
+                    .into_response()
+            }
+            TokenError::Base64Decode(e) => {
+                tracing::error!("Error decoding base64 value: {:?}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Error decoding base64 value",
+                )
+                    .into_response()
+            }
+            TokenError::Utf8(e) => {
+                tracing::error!("Error reading UTF-8 value: {:?}", e);
+
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Error reading UTF-8 value",
+                )
+                    .into_response()
+            }
             TokenError::Unknown(e) => {
+                tracing::error!("Unknown error handling JWT: {:?}", e);
                 (StatusCode::UNAUTHORIZED, "Unknown error handling JWT").into_response()
             }
             TokenError::Encode(e) => (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),

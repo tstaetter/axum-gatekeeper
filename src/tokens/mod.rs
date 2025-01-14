@@ -78,7 +78,7 @@ pub trait Token {
     }
 
     /// Decode Token from given `encoded` string using `secret`
-    fn decode(encoded: String, secret: &String) -> GateKeeperResult<Self>
+    fn decode(encoded: String, secret: &str) -> GateKeeperResult<Self>
     where
         Self: Sized,
     {

@@ -1,5 +1,5 @@
-use crate::model::GateKeeperModel;
-use crate::tokens::{Claims, Token, TokenService};
+use crate::error::TokenError;
+use crate::tokens::{Claims, Token};
 use crate::GateKeeperResult;
 use base64::{engine::general_purpose, Engine as _};
 use serde::{Deserialize, Serialize};
@@ -16,11 +16,15 @@ impl VerificationToken {
         Ok(general_purpose::URL_SAFE.encode(self.encoded.as_bytes()))
     }
 
-    pub async fn try_from_base64(hash: &str, db: &AppDatabase) -> GateKeeperResult<Self> {
-        let encoded = String::from_utf8(general_purpose::URL_SAFE.decode(hash)?)?;
-        let user = TokenService::try_get_user_for_encoded(encoded.clone(), db).await?;
+    pub async fn try_from_base64(hash: &str, secret: &str) -> GateKeeperResult<Self> {
+        let encoded = String::from_utf8(
+            general_purpose::URL_SAFE
+                .decode(hash)
+                .map_err(TokenError::Base64Decode)?,
+        )
+        .map_err(TokenError::Utf8)?;
 
-        Self::decode(encoded, &user.secret().to_string())
+        Self::decode(encoded, secret)
     }
 }
 

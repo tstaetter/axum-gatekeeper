@@ -1,3 +1,4 @@
+use crate::error::TokenError;
 use crate::tokens::{Claims, Token};
 use crate::GateKeeperResult;
 use cookie::time::OffsetDateTime;
@@ -14,7 +15,10 @@ impl RefreshToken {
     pub fn try_as_cookie(&self) -> GateKeeperResult<Cookie> {
         Ok(Cookie::build(("refresh_token", &self.encoded))
             .path("/")
-            .expires(OffsetDateTime::from_unix_timestamp(self.claims.exp as i64)?)
+            .expires(
+                OffsetDateTime::from_unix_timestamp(self.claims.exp as i64)
+                    .map_err(TokenError::ReadingExpiration)?,
+            )
             .secure(true)
             .http_only(true)
             .same_site(cookie::SameSite::None)
