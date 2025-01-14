@@ -3,6 +3,7 @@
 //! Only available on feature `verification`
 mod error;
 mod middleware;
+mod token;
 
 pub use error::*;
 pub use middleware::*;

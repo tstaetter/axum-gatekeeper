@@ -1,19 +1,13 @@
 mod service;
 
-#[cfg(feature = "authentication")]
-mod authentication_token;
 mod error;
-#[cfg(feature = "authentication")]
-mod refresh_token;
-#[cfg(feature = "verification")]
-mod verification_token;
 
 #[cfg(feature = "authentication")]
-pub use authentication_token::AuthenticationToken;
+pub use crate::authentication::AuthenticationToken;
 #[cfg(feature = "authentication")]
-pub use refresh_token::RefreshToken;
+pub use crate::authentication::RefreshToken;
 #[cfg(feature = "verification")]
-pub use verification_token::VerificationToken;
+pub use crate::verification::VerificationError;
 
 use chrono::Utc;
 pub use error::*;
@@ -29,11 +23,11 @@ use serde::{Deserialize, Serialize};
 pub struct Claims {
     pub exp: usize,
     pub iat: usize,
-    sub: String,
+    pub sub: String,
 }
 
 pub trait Token {
-    const EXPIRE_SECS_VAR: &'static str = "AUTH_EXPIRE_SECS";
+    const EXPIRE_SECS_VAR: &'static str = "";
 
     /// Create new tokens
     fn new(encoded: String, claims: Claims) -> Self
@@ -41,7 +35,7 @@ pub trait Token {
         Self: Sized;
 
     /// Create tokens for provided user
-    fn try_new_for_user(user: &impl GateKeeperModel) -> GateKeeperResult<Self>
+    fn try_new_for_model(user: &impl GateKeeperModel) -> GateKeeperResult<Self>
     where
         Self: Sized,
     {
