@@ -8,6 +8,8 @@ pub use crate::authentication::AuthenticationToken;
 pub use crate::authentication::RefreshToken;
 #[cfg(feature = "verification")]
 pub use crate::verification::VerificationError;
+#[cfg(feature = "verification")]
+pub use crate::verification::VerificationToken;
 
 use chrono::Utc;
 pub use error::*;
